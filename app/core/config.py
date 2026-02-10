@@ -18,7 +18,12 @@ class Settings(BaseSettings):
     GROQ_MODEL_NAME: str = "llama3-70b-8192"
     
     # Embeddings
-    EMBEDDING_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
+    # Switched to Multilingual model for better Spanish support
+    EMBEDDING_MODEL_NAME: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    
+    # Ingestion
+    CHUNK_SIZE: int = 1000
+    CHUNK_OVERLAP: int = 350
 
     # CORS
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
@@ -31,6 +36,6 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
 settings = Settings()

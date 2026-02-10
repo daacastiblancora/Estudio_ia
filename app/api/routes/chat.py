@@ -16,9 +16,9 @@ async def chat(query: ChatQuery):
         # Extract sources from context docs
         for doc in response.get("context", []):
             sources.append(Source(
-                document_name=doc.metadata.get("source", "Unknown"),
-                page_number=doc.metadata.get("page", 0),  # Default to 0 if None
-                content_snippet=doc.page_content[:200] + "...",
+                document_name=doc.metadata.get("source", "Desconocido"),
+                page_number=doc.metadata.get("page_number", doc.metadata.get("page", 0)),
+                content_snippet=doc.page_content[:250] + "...",
                 relevance_score=0.0 
             ))
 
