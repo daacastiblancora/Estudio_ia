@@ -13,3 +13,4 @@ sentence-transformers
 pydantic
 pydantic-settings
 uuid
+slowapi
