@@ -20,7 +20,7 @@ class HybridRetriever(BaseRetriever):
     - Return top K.
     """
     vector_store: object
-    k: int = 4
+    k: int = 10
 
     def _get_relevant_documents(
         self, query: str, *, run_manager: CallbackManagerForRetrieverRun

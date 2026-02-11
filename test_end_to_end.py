@@ -3,7 +3,7 @@ import sys
 import os
 import time
 
-API_URL = "http://localhost:8000/api/v1"
+API_URL = "http://localhost:8001/api/v1"
 TEST_FILE = "documents/manual_antigravity.pdf"
 
 def run_test():

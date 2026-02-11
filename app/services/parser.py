@@ -10,7 +10,7 @@ class PDFParser:
     and metadata (page numbers).
     """
     
-    def parse(self, file_path: str) -> List[Document]:
+    def parse(self, file_path: str, source_name: str = None) -> List[Document]:
         """
         Parses a PDF file and returns a list of Documents (one per page)
         with metadata including source and page_number.
@@ -19,7 +19,8 @@ class PDFParser:
             raise FileNotFoundError(f"File not found: {file_path}")
 
         documents = []
-        filename = os.path.basename(file_path)
+        # Use provided source name or fallback to basename
+        filename = source_name if source_name else os.path.basename(file_path)
 
         try:
             with pdfplumber.open(file_path) as pdf:
@@ -28,6 +29,10 @@ class PDFParser:
                     if text:
                         # Clean text (basic normalization)
                         text = self._clean_text(text)
+                        
+                        # META-INJECTION: Add metadata to text so BM25/Vector can find it
+                        # This enables questions like "What is on page 6 of remote work?"
+                        text = f"Documento: {filename} | Página: {i+1}\n\n{text}"
                         
                         metadata = {
                             "source": filename,

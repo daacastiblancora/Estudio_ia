@@ -34,17 +34,19 @@ class IngestionService:
         try:
             documents = []
             if filename.lower().endswith(".pdf"):
-                # Use robust PDF parser
-                documents = pdf_parser.parse(tmp_path)
+                # Use robust PDF parser with explicit source name
+                documents = pdf_parser.parse(tmp_path, source_name=filename)
             elif filename.lower().endswith(".docx"):
                 loader = Docx2txtLoader(tmp_path)
                 documents = loader.load()
                 # Basic metadata for DOCX
-                for doc in documents:
-                    doc.metadata["source"] = filename
             else:
                 logger.warning(f"Unsupported file type: {filename}")
                 return 0
+
+            # FORCE CORRECT METADATA
+            for doc in documents:
+                doc.metadata["source"] = filename
 
             if not documents:
                 logger.warning(f"No content extracted from {filename}")

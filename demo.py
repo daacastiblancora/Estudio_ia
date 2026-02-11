@@ -2,7 +2,7 @@ import requests
 import sys
 import os
 
-API_URL = "http://localhost:8000/api/v1"
+API_URL = "http://localhost:8001/api/v1"
 
 def run_demo():
     print("🚀 Starting Copiloto Core Demo")
