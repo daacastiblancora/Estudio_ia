@@ -14,3 +14,10 @@ pydantic
 pydantic-settings
 uuid
 slowapi
+flake8
+black
+isort
+mypy
+pytest
+httpx
+python-multipart
