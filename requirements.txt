@@ -16,3 +16,5 @@ isort
 mypy
 pytest
 httpx
+langchain-huggingface
+python-multipart
