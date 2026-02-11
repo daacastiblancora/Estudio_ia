@@ -58,6 +58,8 @@ class IngestionService:
             # Add to Qdrant
             if chunks:
                 self.vector_store.add_documents(chunks)
+                # PERSISTENCE: Save FAISS index
+                vector_db_service.save()
             
             return len(chunks)
 

@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     
     # Qdrant
     QDRANT_URL: str
-    QDRANT_API_KEY: str
+    QDRANT_API_KEY: Union[str, None] = None
     QDRANT_COLLECTION_NAME: str = "copiloto_docs"
     
     # Groq
