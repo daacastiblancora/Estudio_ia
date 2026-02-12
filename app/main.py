@@ -22,6 +22,13 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Database Initialization
+from app.core.database import init_db
+
+@app.on_event("startup")
+async def on_startup():
+    await init_db()
+
 # Set up CORS
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
@@ -34,6 +41,8 @@ if settings.BACKEND_CORS_ORIGINS:
 
 app.include_router(health.router, prefix=settings.API_V1_STR, tags=["Health"])
 app.include_router(ingest.router, prefix=settings.API_V1_STR, tags=["Ingestion"])
+from app.api.routes import auth
+app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["Auth"])
 app.include_router(chat.router, prefix=settings.API_V1_STR, tags=["Chat"])
 
 if __name__ == "__main__":

@@ -10,6 +10,14 @@ pydantic>=2.7.0
 pydantic-settings>=2.2.0
 uuid
 
+# Security
+python-jose[cryptography]
+passlib[bcrypt]
+
+# Database
+sqlmodel>=0.0.16
+aiosqlite>=0.20.0
+
 # Vector DB
 qdrant-client>=1.9.0
 langchain-qdrant>=0.1.0
