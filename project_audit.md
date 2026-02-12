@@ -68,3 +68,14 @@ Para evolucionar del **MVP Documental** actual a un **Copiloto Operativo**, se r
 1.  **Agencia:** Habilitar "Tools" en el LLM.
 2.  **Seguridad:** Capa de Auth y Roles.
 3.  **Integraciones:** Conectores a APIs de terceros.
+
+## 📝 Estado Actual (12/02/2026)
+
+### ✅ Logros Destacados
+*   **Recuperación de Contexto (Context Retrieval):** El sistema RAG está funcionando correctamente. Adquiere el contexto relevante de los documentos ingestados (ej. `TARIFAS.pdf`, `MANUAL_VETA.pdf`) para responder preguntas específicas.
+*   **Agente Operativo:** Se ha configurado el agente "Copiloto Operativo" con capacidad de usar herramientas.
+
+### ⚠️ Puntos de Atención
+*   **Precisión de Citación:** Aunque el modelo responde correctamente basándose en la información, ocasionalmente falla en proporcionar la referencia exacta (Nombre de archivo y Página) en el formato estricto `[Archivo.pdf, Pág. X]`.
+    *   *Causa:* Limitaciones en la capacidad del modelo `llama-3.3-70b` para seguir instrucciones de formato rígido durante `tool calling` complejos.
+    *   *Estado:* Se ha priorizado la estabilidad de la respuesta sobre la perfección del formato de cita para asegurar la operatividad.

@@ -57,8 +57,19 @@ async def chat(
                     # For MVP Agent, we might lose granular source metadata in the response object unless we modify the tool.
                     pass
 
-        # Fallback: Extract citations from answer text using Regex if needed, or leave sources empty 
-        # as the answer itself contains the citations per prompt.
+        # Fallback: Extract citations from answer text using Regex
+        # Pattern: [Filename.pdf, Pág. X]
+        import re
+        citation_pattern = r"\[(.*?),\s*Pág\.?\s*(\d+)\]"
+        matches = re.findall(citation_pattern, answer)
+        
+        for filename, page_num in matches:
+            sources.append(Source(
+                document_name=filename.strip(),
+                page_number=int(page_num),
+                content_snippet="Cited by Agent",
+                relevance_score=1.0
+            ))
 
         chat_response = ChatResponse(answer=answer, sources=sources)
 

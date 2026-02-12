@@ -11,7 +11,7 @@ import hashlib
 class HybridRetriever(BaseRetriever):
     """
     Hybrid Retriever that combines:
-    1. Dense Search (Qdrant with HuggingFace Embeddings)
+    1. Dense Search (FAISS/Qdrant with HuggingFace Embeddings)
     2. Keyword Search (BM25 on retrieved documents or separate index)
     
     For this MVP, we will implement a 'Rerank' strategy:

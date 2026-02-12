@@ -8,6 +8,7 @@ from langchain.tools.retriever import create_retriever_tool
 
 class LLMService:
     def __init__(self):
+        # RESTORED CONFIGURATION: Temperature 0.1 for balance
         self.llm = ChatGroq(
             groq_api_key=settings.GROQ_API_KEY,
             model_name=settings.GROQ_MODEL_NAME,
@@ -15,24 +16,23 @@ class LLMService:
         )
         
         # 1. Tools Setup
-        # Wrap Retriever as a Tool so the Agent can decide when to search
         self.retriever = get_hybrid_retriever(k=6)
         retriever_tool = create_retriever_tool(
             self.retriever,
             "search_internal_documents",
-            "Searches for information in the corporate documents (policies, procedures, manuals). Always use this first to answer questions."
+            "Searches for information in the corporate documents. Always use this first."
         )
         
         self.tools = [retriever_tool] + email_tools
         
-        # 2. Agent Prompt
+        # 2. Agent Prompt (Copiloto Operativo Persona)
         system_prompt = (
-            "Eres V.E.T.A. (Virtual Especialista en Trámites y Asesoría), un agente operativo corporativo.\n"
+            "Eres el Copiloto Operativo, un asistente experto en procesos bancarios y operativos.\n"
             "Tienes acceso a herramientas para buscar información y enviar correos.\n"
             "Reglas:\n"
             "1. Usa 'search_internal_documents' para responder preguntas sobre procesos.\n"
             "2. Usa 'send_email' solo si el usuario te lo pide explícitamente.\n"
-            "3. Si encuentras información en los documentos, CITA LA FUENTE [Archivo, Pág. X].\n"
+            "3. Si encuentras información en los documentos, intenta usar el nombre del archivo en la cita [NombreArchivo.pdf, Pág. X].\n"
             "4. Responde siempre en Español.\n"
         )
         
