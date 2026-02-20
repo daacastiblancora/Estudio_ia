@@ -7,3 +7,7 @@ venv/
 .idea/
 .vscode/
 *.log
+*.db
+faiss_index/
+qdrant_data/
+qdrant_test_db/
