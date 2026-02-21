@@ -97,17 +97,26 @@ async def chat(
         sources = []
 
         # Extract citations from answer text using Regex
-        # Pattern: [Filename.pdf, Pág. X]
-        citation_pattern = r"\[(.*?),\s*Pág\.?\s*(\d+)\]"
-        matches = re.findall(citation_pattern, answer)
+        # Patterns: [File.pdf, Pág. X] or [File, Pág X] or [File.pdf, Página X]
+        citation_patterns = [
+            r"\[(.*?),\s*Pág\.?\s*(\d+)\]",
+            r"\[(.*?),\s*Página\.?\s*(\d+)\]",
+            r"\[(.*?\.pdf),\s*(\d+)\]",
+        ]
 
-        for filename, page_num in matches:
-            sources.append(Source(
-                document_name=filename.strip(),
-                page_number=int(page_num),
-                content_snippet="Cited by Agent",
-                relevance_score=1.0,
-            ))
+        seen = set()
+        for pattern in citation_patterns:
+            matches = re.findall(pattern, answer)
+            for filename, page_num in matches:
+                key = (filename.strip(), int(page_num))
+                if key not in seen:
+                    seen.add(key)
+                    sources.append(Source(
+                        document_name=filename.strip(),
+                        page_number=int(page_num),
+                        content_snippet="Cited by Agent",
+                        relevance_score=1.0,
+                    ))
 
         chat_response = ChatResponse(
             answer=answer,
