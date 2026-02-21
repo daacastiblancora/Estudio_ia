@@ -50,9 +50,9 @@ A continuación se detalla el estado actual del proyecto **Copiloto Core** frent
 
 ### 5. Memoria y Contexto
 *   **Requisito:** "Que recuerde la pregunta anterior."
-*   **Estado:** 🔴 **No Implementado**
-*   **Brecha:** Cada request es independiente.
-*   **Necesario:** Base de datos SQL/NoSQL (Redis/Postgres) para guardar sesiones de chat (`session_id`).
+*   **Estado:** � **Implementado (20/02/2026)**
+*   **Detalle:** Sesiones persistentes en SQLite. El cliente envía `session_id` para continuar conversaciones. Historial se carga y pasa al agente como `chat_history` (últimos 20 mensajes).
+*   **Endpoints:** `GET /sessions`, `GET /sessions/{id}/messages`, `DELETE /sessions/{id}`.
 
 ### 6. Auditoría Detallada
 *   **Requisito:** "Auditoría: quién preguntó, qué respondió, qué fuentes usó."
@@ -69,13 +69,16 @@ Para evolucionar del **MVP Documental** actual a un **Copiloto Operativo**, se r
 2.  **Seguridad:** Capa de Auth y Roles.
 3.  **Integraciones:** Conectores a APIs de terceros.
 
-## 📝 Estado Actual (12/02/2026)
+## 📝 Estado Actual (20/02/2026)
 
 ### ✅ Logros Destacados
-*   **Recuperación de Contexto (Context Retrieval):** El sistema RAG está funcionando correctamente. Adquiere el contexto relevante de los documentos ingestados (ej. `TARIFAS.pdf`, `MANUAL_VETA.pdf`) para responder preguntas específicas.
+*   **Recuperación de Contexto (Context Retrieval):** El sistema RAG está funcionando correctamente.
 *   **Agente Operativo:** Se ha configurado el agente "Copiloto Operativo" con capacidad de usar herramientas.
+*   **Memoria Conversacional:** El copiloto ahora recuerda conversaciones previas del mismo usuario (`session_id` + historial en DB).
+*   **Gestión de Sesiones:** Endpoints para listar, consultar y eliminar sesiones de chat.
+*   **Limpieza de Repo:** Eliminados scripts de debug/temp. Estructura consolidada.
 
 ### ⚠️ Puntos de Atención
-*   **Precisión de Citación:** Aunque el modelo responde correctamente basándose en la información, ocasionalmente falla en proporcionar la referencia exacta (Nombre de archivo y Página) en el formato estricto `[Archivo.pdf, Pág. X]`.
-    *   *Causa:* Limitaciones en la capacidad del modelo `llama-3.3-70b` para seguir instrucciones de formato rígido durante `tool calling` complejos.
-    *   *Estado:* Se ha priorizado la estabilidad de la respuesta sobre la perfección del formato de cita para asegurar la operatividad.
+*   **Precisión de Citación:** Ocasionalmente falla en el formato estricto `[Archivo.pdf, Pág. X]`.
+    *   *Estado:* Se ha priorizado la estabilidad de la respuesta sobre la perfección del formato de cita.
+*   **Seguridad:** `SECRET_KEY` aún usa `GROQ_API_KEY`. Separar en próxima iteración.
