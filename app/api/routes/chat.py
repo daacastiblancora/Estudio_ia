@@ -86,12 +86,28 @@ async def chat(
         # 3. Load chat history from DB (empty list if new session)
         chat_history = await _load_chat_history(db, session.id)
 
-        # 4. Agent Logic — pass real chat history
+        # 4. Agent Logic — pass real chat history (with retry for Groq tool calling issues)
         rag_chain = llm_service.get_rag_chain()
-        response = rag_chain.invoke({
-            "input": clean_query,
-            "chat_history": chat_history,
-        })
+        max_retries = 3
+        response = None
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                response = rag_chain.invoke({
+                    "input": clean_query,
+                    "chat_history": chat_history,
+                })
+                break  # Success, exit retry loop
+            except Exception as agent_err:
+                last_error = agent_err
+                print(f"⚠️ Agent attempt {attempt + 1}/{max_retries} failed: {agent_err}")
+                if attempt < max_retries - 1:
+                    import asyncio
+                    await asyncio.sleep(1)  # Brief pause before retry
+
+        if response is None:
+            raise Exception(f"Agent failed after {max_retries} attempts: {last_error}")
 
         answer = response.get("output", "No answer generated.")
         sources = []

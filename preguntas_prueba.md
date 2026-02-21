@@ -42,3 +42,31 @@ Para mejorar las citaciones se hicieron 2 cambios:
 
 1. **`llm.py`** — Prompt reforzado: las citaciones pasaron de "intenta usar" a "SIEMPRE cita tus fuentes"
 2. **`chat.py`** — Regex ampliado: ahora captura `Pág.`, `Página`, y formatos alternativos
+3. **`chat.py`** — Retry logic: hasta 3 intentos para manejar errores intermitentes de Groq tool calling
+
+---
+
+## Pregunta 2: Retiro tarjeta débito en cajero de otra red
+
+**Pregunta:**
+> ¿Cuál es la tarifa por hacer un retiro con tarjeta débito en un cajero de otra red?
+
+### Respuesta esperada (Gemini / Validación manual)
+- **Valor:** $7.460
+- **Fuente:** TARIFAS 11 MAYO.pdf, Página 1 (Tabla de "Transacciones con Tarjeta Débito")
+
+### Respuesta del Copiloto (Agente RAG)
+> La tarifa por hacer un retiro con tarjeta débito en un cajero de otra red es de $2.700 [Tarifas y Comisiones.pdf, Pág. 2].
+
+| Criterio | Esperado | Copiloto | Match |
+| :--- | :--- | :--- | :--- |
+| Valor | $7.460 | $2.700 | ❌ |
+| Página | 1 | 2 | ❌ |
+| Citación | Sí | Sí | ✅ |
+| Nombre archivo | TARIFAS 11 MAYO.pdf | Tarifas y Comisiones.pdf | ⚠️ Genérico |
+
+### Análisis
+- **Dato incorrecto:** El agente encontró una tarifa diferente ($2.700), probablemente de otra sección del documento. La tarifa de "Cajeros Electrónicos de Otras Redes" ($7.460) está en otra tabla.
+- **Nombre de archivo:** El agente usó un nombre genérico en vez del nombre real del PDF. Esto ocurre porque el `create_retriever_tool` no expone los metadatos directamente.
+- **Nota:** El error es de *retrieval*, no de *generación*. El agente cita correctamente lo que encontró, pero encontró el chunk equivocado.
+
