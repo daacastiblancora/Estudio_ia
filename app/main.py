@@ -41,9 +41,10 @@ if settings.BACKEND_CORS_ORIGINS:
 
 app.include_router(health.router, prefix=settings.API_V1_STR, tags=["Health"])
 app.include_router(ingest.router, prefix=settings.API_V1_STR, tags=["Ingestion"])
-from app.api.routes import auth, sessions
+from app.api.routes import auth, sessions, audit
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["Auth"])
 app.include_router(sessions.router, prefix=settings.API_V1_STR, tags=["Sessions"])
+app.include_router(audit.router, prefix=settings.API_V1_STR, tags=["Audit"])
 app.include_router(chat.router, prefix=settings.API_V1_STR, tags=["Chat"])
 
 if __name__ == "__main__":

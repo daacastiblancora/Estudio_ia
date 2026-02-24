@@ -26,9 +26,8 @@ A continuación se detalla el estado actual del proyecto **Copiloto Core** frent
 
 ### 1. Capacidades de Agente (Acciones)
 *   **Requisito:** "Ejecuta acciones: crea tareas, redacta correos... Workflows (Jira, CRM)."
-*   **Estado:** 🔴 **No Implementado (Backend Pasivo)**
-*   **Brecha:** El backend actual es "Read-Only". Solo lee documentos y responde. No tiene capacidad de "Tool Calling" ni permisos para escribir en sistemas externos.
-*   **Necesario:** Transformar el RAG en un **Agente ReAct** o usar **LangChain Tools** para conectar con APIs externas (Gmail API, Jira API).
+*   **Estado:** 🟡 **Parcial (24/02/2026)**
+*   **Detalle:** Agente ReAct implementado con `LangChain AgentExecutor` + Tool Calling. Tools disponibles: `search_internal_documents` (RAG), `send_email` (estructura). Falta: integración real con APIs externas (Jira, CRM).
 
 ### 2. Generación de Contenido
 *   **Requisito:** "Redacta correos, resume reuniones, genera minutas, arma procedimientos."
@@ -56,9 +55,8 @@ A continuación se detalla el estado actual del proyecto **Copiloto Core** frent
 
 ### 6. Auditoría Detallada
 *   **Requisito:** "Auditoría: quién preguntó, qué respondió, qué fuentes usó."
-*   **Estado:** 🟡 **Parcial (Logs de Texto)**
-*   **Brecha:** Existen logs técnicos en consola, pero no hay una base de datos consultable de interacciones.
-*   **Necesario:** Tabla `chat_logs` en base de datos persistente.
+*   **Estado:** 🟢 **Implementado (24/02/2026)**
+*   **Detalle:** Todas las interacciones se persisten en SQLite. Endpoints admin-only: `GET /audit/stats` (dashboard), `GET /audit/logs` (historial Q&A filtrable por email).
 
 ---
 
