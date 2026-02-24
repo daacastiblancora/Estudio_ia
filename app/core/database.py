@@ -4,10 +4,16 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-# SQLite Database URL
+# SQLite Database URLs
 DATABASE_URL = "sqlite+aiosqlite:///./copiloto.db"
+SYNC_DATABASE_URL = "sqlite:///./copiloto.db"
 
 engine = AsyncEngine(create_engine(DATABASE_URL, echo=False, future=True))
+_sync_engine = create_engine(SYNC_DATABASE_URL, echo=False)
+
+def get_sync_engine():
+    """Return sync engine for LangChain tools (they run synchronously)."""
+    return _sync_engine
 
 async def init_db():
     async with engine.begin() as conn:

@@ -26,8 +26,9 @@ A continuación se detalla el estado actual del proyecto **Copiloto Core** frent
 
 ### 1. Capacidades de Agente (Acciones)
 *   **Requisito:** "Ejecuta acciones: crea tareas, redacta correos... Workflows (Jira, CRM)."
-*   **Estado:** 🟡 **Parcial (24/02/2026)**
-*   **Detalle:** Agente ReAct implementado con `LangChain AgentExecutor` + Tool Calling. Tools disponibles: `search_internal_documents` (RAG), `send_email` (estructura). Falta: integración real con APIs externas (Jira, CRM).
+*   **Estado:** 🟢 **Implementado (24/02/2026)**
+*   **Detalle:** Agente ReAct con `LangChain AgentExecutor` + 6 Tools: `search_internal_documents` (RAG), `send_email`, `generate_summary`, `generate_procedure`, `create_task`, `list_tasks`. Tareas se persisten en SQLite.
+*   **Pendiente:** Integraciones reales con APIs externas (Jira, CRM, Gmail SMTP).
 
 ### 2. Generación de Contenido
 *   **Requisito:** "Redacta correos, resume reuniones, genera minutas, arma procedimientos."
