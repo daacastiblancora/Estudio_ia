@@ -44,9 +44,9 @@ A continuación se detalla el estado actual del proyecto **Copiloto Core** frent
 
 ### 4. Seguridad y Roles
 *   **Requisito:** "Acceso por área/rol, logs, auditoría. Roles básicos."
-*   **Estado:** 🔴 **No Implementado (API Abierta)**
-*   **Brecha:** La API es pública para cualquiera que llegue al puerto. No distingue usuarios ni áreas.
-*   **Necesario:** Implementar Middleware de Autenticación (JWT), tabla de Usuarios, y Lógica de RLS (Row Level Security) en el vector store (filtrar documentos por rol).
+*   **Estado:** 🟢 **Implementado (24/02/2026)**
+*   **Detalle:** SECRET_KEY independiente (no reutiliza GROQ_API_KEY). Sistema RBAC con `require_role()`. Roles `user` y `admin`. Endpoints admin-only: `GET /users`, `PATCH /users/{id}/role`.
+*   **Pendiente:** Proteger `/ingest` con rol admin (pospuesto para conveniencia del equipo).
 
 ### 5. Memoria y Contexto
 *   **Requisito:** "Que recuerde la pregunta anterior."
@@ -69,16 +69,17 @@ Para evolucionar del **MVP Documental** actual a un **Copiloto Operativo**, se r
 2.  **Seguridad:** Capa de Auth y Roles.
 3.  **Integraciones:** Conectores a APIs de terceros.
 
-## 📝 Estado Actual (20/02/2026)
+## 📝 Estado Actual (24/02/2026)
 
 ### ✅ Logros Destacados
-*   **Recuperación de Contexto (Context Retrieval):** El sistema RAG está funcionando correctamente.
-*   **Agente Operativo:** Se ha configurado el agente "Copiloto Operativo" con capacidad de usar herramientas.
-*   **Memoria Conversacional:** El copiloto ahora recuerda conversaciones previas del mismo usuario (`session_id` + historial en DB).
-*   **Gestión de Sesiones:** Endpoints para listar, consultar y eliminar sesiones de chat.
-*   **Limpieza de Repo:** Eliminados scripts de debug/temp. Estructura consolidada.
+*   **Recuperación de Contexto (Context Retrieval):** RAG funcionando.
+*   **Agente Operativo:** Tool Calling con LangChain AgentExecutor.
+*   **Memoria Conversacional:** `session_id` + historial en DB.
+*   **Gestión de Sesiones:** Listar, consultar y eliminar sesiones.
+*   **Seguridad:** SECRET_KEY propio, JWT, bcrypt, RBAC (`user`/`admin`).
+*   **User Management:** Endpoints admin-only para listar y cambiar roles.
+*   **Limpieza de Repo:** Estructura consolidada.
 
 ### ⚠️ Puntos de Atención
-*   **Precisión de Citación:** Ocasionalmente falla en el formato estricto `[Archivo.pdf, Pág. X]`.
-    *   *Estado:* Se ha priorizado la estabilidad de la respuesta sobre la perfección del formato de cita.
-*   **Seguridad:** `SECRET_KEY` aún usa `GROQ_API_KEY`. Separar en próxima iteración.
+*   **Citaciones:** Mejoradas pero intermitentes.
+*   **`/ingest` abierto:** Sin auth por conveniencia del equipo. Proteger en producción.

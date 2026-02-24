@@ -5,7 +5,7 @@ from passlib.context import CryptContext
 from app.core.config import settings
 
 # Configuration
-SECRET_KEY = settings.GROQ_API_KEY # For MVP we reuse this secret, ideally use a separate one
+SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

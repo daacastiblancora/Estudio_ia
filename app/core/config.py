@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     LOG_LEVEL: str = "INFO"
     
+    # Security
+    SECRET_KEY: str = "change-me-in-production-use-a-long-random-string"
+    
     # Qdrant (Optional if using FAISS Local)
     QDRANT_URL: Union[str, None] = None
     QDRANT_API_KEY: Union[str, None] = None
