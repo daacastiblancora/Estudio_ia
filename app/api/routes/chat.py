@@ -113,11 +113,13 @@ async def chat(
         sources = []
 
         # Extract citations from answer text using Regex
-        # Patterns: [File.pdf, Pág. X] or [File, Pág X] or [File.pdf, Página X]
+        # New format: [File - Página X] plus legacy formats
         citation_patterns = [
-            r"\[(.*?),\s*Pág\.?\s*(\d+)\]",
-            r"\[(.*?),\s*Página\.?\s*(\d+)\]",
-            r"\[(.*?\.pdf),\s*(\d+)\]",
+            r"\[(.*?)\s*-\s*Página\s*(\d+)\]",       # [File - Página X] (new primary)
+            r"\[(.*?)\s*-\s*Pág\.?\s*(\d+)\]",       # [File - Pág. X]
+            r"\[(.*?),\s*Pág\.?\s*(\d+)\]",           # [File, Pág. X] (legacy)
+            r"\[(.*?),\s*Página\.?\s*(\d+)\]",        # [File, Página X] (legacy)
+            r"\[(.*?\.pdf),\s*(\d+)\]",               # [File.pdf, X] (legacy)
         ]
 
         seen = set()
