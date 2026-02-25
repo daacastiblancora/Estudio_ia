@@ -38,9 +38,9 @@ A continuación se detalla el estado actual del proyecto **Copiloto Core** frent
 
 ### 3. Conectores de Fuentes (Data Sources)
 *   **Requisito:** "Drive, Sharepoint, Notion, Confluence, Tickets, CRM."
-*   **Estado:** 🔴 **No Implementado (Solo Local)**
-*   **Brecha:** Solo ingesta archivos locales. No hay conexión a nubes.
-*   **Necesario:** Implementar conectores OAuth2 y módulos de `LlamaIndex` o `LangChain` específicos para estas plataformas.
+*   **Estado:** 🟢 **Multi-formato implementado (24/02/2026)**
+*   **Detalle:** Arquitectura Registry/Strategy con 6 parsers: PDF, DOCX, XLSX/CSV, PPTX, EML/MSG, TXT/MD. PlainText como fallback para formatos desconocidos. Metadata unificada para citaciones.
+*   **Pendiente:** Conectores OAuth2 para fuentes externas (Drive, SharePoint, Confluence).
 
 ### 4. Seguridad y Roles
 *   **Requisito:** "Acceso por área/rol, logs, auditoría. Roles básicos."
