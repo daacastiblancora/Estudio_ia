@@ -56,7 +56,6 @@ async def _get_or_create_session(
         session = result.scalar_one_or_none()
         if session:
             return session
-        # If session_id was provided but not found, fall through to create new
 
     # Create new session
     session = ChatSession(title=title[:50], user_id=user_id)
@@ -67,7 +66,7 @@ async def _get_or_create_session(
 
 
 @router.post("/chat", response_model=ChatResponse)
-@limiter.limit("5/minute")
+@limiter.limit("30/minute")
 async def chat(
     request: Request,
     query: ChatQuery,
@@ -86,7 +85,7 @@ async def chat(
         # 3. Load chat history from DB (empty list if new session)
         chat_history = await _load_chat_history(db, session.id)
 
-        # 4. Agent Logic — pass real chat history (with retry for Groq tool calling issues)
+        # 4. RAG Chain Logic with retry for Groq transient errors
         rag_chain = llm_service.get_rag_chain()
         max_retries = 3
         response = None
@@ -98,41 +97,56 @@ async def chat(
                     "input": clean_query,
                     "chat_history": chat_history,
                 })
-                break  # Success, exit retry loop
-            except Exception as agent_err:
-                last_error = agent_err
-                print(f"⚠️ Agent attempt {attempt + 1}/{max_retries} failed: {agent_err}")
+                break  # Success
+            except Exception as chain_err:
+                last_error = chain_err
+                print(f"⚠️ Chain attempt {attempt + 1}/{max_retries} failed: {chain_err}")
                 if attempt < max_retries - 1:
                     import asyncio
-                    await asyncio.sleep(1)  # Brief pause before retry
+                    await asyncio.sleep(1)
 
         if response is None:
-            raise Exception(f"Agent failed after {max_retries} attempts: {last_error}")
+            raise Exception(f"Chain failed after {max_retries} attempts: {last_error}")
 
-        answer = response.get("output", "No answer generated.")
+        # RAG Chain returns "answer" key (not "output" like Agent)
+        answer = response.get("answer", "No answer generated.")
         sources = []
 
-        # Extract citations from answer text using Regex
-        # New format: [File - Página X] plus legacy formats
+        # Extract sources from context documents returned by the chain
+        context_docs = response.get("context", [])
+        seen_sources = set()
+        for doc in context_docs:
+            doc_name = doc.metadata.get("source", "Desconocido")
+            page_num = doc.metadata.get("page_number", doc.metadata.get("page", 0))
+            key = (doc_name, page_num)
+            if key not in seen_sources:
+                seen_sources.add(key)
+                sources.append(Source(
+                    document_name=doc_name,
+                    page_number=page_num,
+                    content_snippet=doc.page_content[:250] + "...",
+                    relevance_score=0.0
+                ))
+
+        # Also extract citations from answer text using Regex
         citation_patterns = [
-            r"\[(.*?)\s*-\s*Página\s*(\d+)\]",       # [File - Página X] (new primary)
+            r"\[(.*?)\s*-\s*Página\s*(\d+)\]",       # [File - Página X]
             r"\[(.*?)\s*-\s*Pág\.?\s*(\d+)\]",       # [File - Pág. X]
-            r"\[(.*?),\s*Pág\.?\s*(\d+)\]",           # [File, Pág. X] (legacy)
-            r"\[(.*?),\s*Página\.?\s*(\d+)\]",        # [File, Página X] (legacy)
-            r"\[(.*?\.pdf),\s*(\d+)\]",               # [File.pdf, X] (legacy)
+            r"\[(.*?),\s*Pág\.?\s*(\d+)\]",           # [File, Pág. X]
+            r"\[(.*?),\s*Página\.?\s*(\d+)\]",        # [File, Página X]
+            r"\[(.*?\.pdf),\s*(\d+)\]",               # [File.pdf, X]
         ]
 
-        seen = set()
         for pattern in citation_patterns:
             matches = re.findall(pattern, answer)
             for filename, page_num in matches:
                 key = (filename.strip(), int(page_num))
-                if key not in seen:
-                    seen.add(key)
+                if key not in seen_sources:
+                    seen_sources.add(key)
                     sources.append(Source(
                         document_name=filename.strip(),
                         page_number=int(page_num),
-                        content_snippet="Cited by Agent",
+                        content_snippet="Cited in answer",
                         relevance_score=1.0,
                     ))
 
@@ -167,4 +181,3 @@ async def chat(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

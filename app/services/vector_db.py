@@ -1,7 +1,7 @@
 import os
-import faiss
-from langchain_community.vectorstores import FAISS
-from langchain_community.docstore.in_memory import InMemoryDocstore
+from qdrant_client import QdrantClient
+from qdrant_client.http import models
+from langchain_qdrant import QdrantVectorStore
 from langchain_huggingface import HuggingFaceEmbeddings
 from app.core.config import settings
 from app.core.logging import logger
@@ -11,47 +11,63 @@ class VectorDBService:
         self.embeddings = HuggingFaceEmbeddings(
             model_name=settings.EMBEDDING_MODEL_NAME
         )
-        # Directory to save the persistent FAISS index
-        self.persist_directory = "faiss_index"
         
-        # Initialize Vector Store
-        if os.path.exists(self.persist_directory):
-            try:
-                self.vector_store = FAISS.load_local(
-                    self.persist_directory, 
-                    self.embeddings,
-                    allow_dangerous_deserialization=True
-                )
-                logger.info("Loaded FAISS index from disk.")
-            except Exception as e:
-                logger.error(f"Failed to load FAISS index: {e}")
-                self._create_empty_index()
+        # 1. Initialize Qdrant Client
+        # Fallback to local memory if no URL provided (for testing), but default to the env value
+        if settings.QDRANT_URL:
+            logger.info(f"Connecting to Qdrant at {settings.QDRANT_URL}")
+            self.client = QdrantClient(
+                url=settings.QDRANT_URL,
+                api_key=settings.QDRANT_API_KEY
+            )
         else:
-            self._create_empty_index()
+            logger.warning("No QDRANT_URL provided, falling back to local FAISS or memory. Initialize FAISS here if needed. But for this phase, Qdrant is required.")
+            # For this phase, we enforce Qdrant use (local or cloud)
+            # Memory mode:
+            self.client = QdrantClient(":memory:")
+            
+        self.collection_name = settings.QDRANT_COLLECTION_NAME
 
-    def _create_empty_index(self):
-        logger.info("Creating new empty FAISS index.")
-        # Create empty index
-        # 384 dimensions for all-MiniLM-L6-v2
-        # If using multilingual-MiniLM-L12 it might be different (384 too for v2?)
-        # Let's dynamically get dimension
-        dummy_embedding = self.embeddings.embed_query("test")
-        dimension = len(dummy_embedding)
+        # 2. Ensure collection exists
+        self._ensure_collection_exists()
         
-        index = faiss.IndexFlatL2(dimension)
-        self.vector_store = FAISS(
-            embedding_function=self.embeddings,
-            index=index,
-            docstore=InMemoryDocstore(),
-            index_to_docstore_id={}
+        # 3. Initialize Langchain QdrantVectorStore
+        self.vector_store = QdrantVectorStore(
+            client=self.client,
+            collection_name=self.collection_name,
+            embedding=self.embeddings,
         )
+        logger.info(f"Initialized QdrantVectorStore with collection '{self.collection_name}'")
+
+    def _ensure_collection_exists(self):
+        """Creates the Qdrant collection if it doesn't already exist."""
+        try:
+            collections_response = self.client.get_collections()
+            collection_names = [col.name for col in collections_response.collections]
+            
+            if self.collection_name not in collection_names:
+                logger.info(f"Collection '{self.collection_name}' not found. Creating it...")
+                # Get embedding dimension
+                dummy_embedding = self.embeddings.embed_query("test")
+                dimension = len(dummy_embedding)
+                
+                self.client.create_collection(
+                    collection_name=self.collection_name,
+                    vectors_config=models.VectorParams(
+                        size=dimension,
+                        distance=models.Distance.COSINE
+                    )
+                )
+                logger.info(f"Collection '{self.collection_name}' created with dimension {dimension}.")
+        except Exception as e:
+            logger.error(f"Error checking/creating Qdrant collection: {e}")
+            raise
 
     def get_vector_store(self):
         return self.vector_store
 
     def save(self):
-        if self.vector_store:
-            self.vector_store.save_local(self.persist_directory)
-            logger.info(f"Saved FAISS index to {self.persist_directory}")
+        # Qdrant saves automatically, nothing to persist manually here
+        pass
 
 vector_db_service = VectorDBService()

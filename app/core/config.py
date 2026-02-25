@@ -25,8 +25,10 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL_NAME: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     
     # Ingestion
-    CHUNK_SIZE: int = 1000
-    CHUNK_OVERLAP: int = 350
+    CHUNK_SIZE: int = 500
+    CHUNK_OVERLAP: int = 150
+    MAX_UPLOAD_SIZE_MB: int = 10
+    ALLOWED_UPLOAD_EXTENSIONS: str = ".pdf,.docx,.doc,.xlsx,.xls,.pptx,.txt,.csv,.eml,.msg"
 
     # CORS
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []

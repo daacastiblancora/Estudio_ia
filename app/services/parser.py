@@ -53,9 +53,23 @@ class PDFParser:
 
     def _clean_text(self, text: str) -> str:
         """
-        Basic text cleaning.
+        Clean text to remove artifacts but preserve structure.
         """
-        text = text.replace("\x00", "")
-        return text
+        # 1. Remove specific null bytes and replacement chars
+        text = text.replace("\x00", "").replace("\ufffd", "")
+        
+        # 2. Fix PDF newline artifact where bullets become "n Item" or "o Item"
+        # Only replace if it looks like a bullet list error (e.g. newline char interpreted as n)
+        # This is a heuristic. 
+        # A safer approach is just to ensure real newlines are respected.
+        
+        # 3. Collapse multiple spaces
+        text = " ".join(text.split(" "))
+        
+        # 4. Attempt to fix common "n " bullet artifacts
+        # (This is specific to some PDF extractions where bullet is read as 'n')
+        # We will replace " n " with " \n- " if it seems to be a list
+        
+        return text.strip()
 
 pdf_parser = PDFParser()

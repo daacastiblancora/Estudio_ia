@@ -8,6 +8,15 @@ venv/
 .vscode/
 *.log
 *.db
+
+# Vector Store data (runtime)
 faiss_index/
 qdrant_data/
 qdrant_test_db/
+qdrant_storage/
+
+# Uploaded documents (runtime data, not code)
+documents/
+
+# Test artifacts
+test_pdfs/

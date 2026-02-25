@@ -8,20 +8,18 @@ slowapi>=0.1.9
 # Config & Utils
 pydantic>=2.7.0
 pydantic-settings>=2.2.0
-uuid
 
 # Security
 python-jose[cryptography]
-passlib[bcrypt]
+bcrypt>=4.0.0
 
 # Database
 sqlmodel>=0.0.16
 aiosqlite>=0.20.0
 
-# Vector DB
+# Vector DB (Qdrant Cloud-Native)
 qdrant-client>=1.9.0
 langchain-qdrant>=0.1.0
-faiss-cpu>=1.7.4
 
 # LLM & AI
 langchain==0.3.17

@@ -34,8 +34,8 @@ router = APIRouter()
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_session)):
     # Check if user exists
     stmt = select(User).where(User.email == user_in.email)
-    result = await db.exec(stmt)
-    existing_user = result.first()
+    result = await db.execute(stmt)
+    existing_user = result.scalars().first()
     
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -61,8 +61,8 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_session))
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_session)):
     # Find user
     stmt = select(User).where(User.email == form_data.username)
-    result = await db.exec(stmt)
-    user = result.first()
+    result = await db.execute(stmt)
+    user = result.scalars().first()
     
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -86,8 +86,8 @@ async def list_users(
 ):
     """List all users (admin only)."""
     stmt = select(User)
-    result = await db.exec(stmt)
-    users = result.all()
+    result = await db.execute(stmt)
+    users = result.scalars().all()
     return [
         UserInfo(id=u.id, email=u.email, role=u.role, is_active=u.is_active)
         for u in users
@@ -105,8 +105,8 @@ async def update_user_role(
         raise HTTPException(status_code=400, detail="Role must be 'user' or 'admin'")
     
     stmt = select(User).where(User.id == user_id)
-    result = await db.exec(stmt)
-    user = result.first()
+    result = await db.execute(stmt)
+    user = result.scalars().first()
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
