@@ -41,6 +41,12 @@ TEST_SESSION_ID = str(uuid.uuid4())
 TEST_EMAIL = f"qa_tester_{uuid.uuid4().hex[:6]}@copiloto.com"
 TEST_PASSWORD = "testpass1234"
 
+# Rate limiting configuration
+DELAY_BETWEEN_CHAT_CALLS = int(os.getenv("TEST_DELAY", "12"))  # seconds
+BACKOFF_BASE = 5           # initial backoff for 429/500 errors
+BACKOFF_MAX_RETRIES = 4    # total attempts before giving up
+HEALTH_RECOVERY_WAIT = 30  # seconds to wait if server goes down
+
 
 # ── Logging Helpers ────────────────────────────────────────────────────────
 
@@ -136,43 +142,93 @@ def auth_headers() -> dict:
     return {"Authorization": f"Bearer {state.token}"}
 
 
+# ── Rate Limit & Health Helpers ────────────────────────────────────────────
+
+def rate_limit_delay(label: str = ""):
+    """Strategic pause between chat calls to respect Groq free tier limits."""
+    msg = f"⏳ Rate limit cooldown ({DELAY_BETWEEN_CHAT_CALLS}s)"
+    if label:
+        msg += f" before {label}"
+    log_info(msg)
+    time.sleep(DELAY_BETWEEN_CHAT_CALLS)
+
+
+def wait_for_server_recovery() -> bool:
+    """
+    If the server crashed (connection refused), wait and check /health.
+    Returns True if server recovered, False if it stayed down.
+    """
+    log_info(f"🔄 Server appears down. Waiting {HEALTH_RECOVERY_WAIT}s for recovery...")
+    time.sleep(HEALTH_RECOVERY_WAIT)
+
+    for check in range(3):
+        try:
+            resp = requests.get(f"{BASE_URL}/health", timeout=5)
+            if resp.status_code == 200:
+                log_info("✅ Server recovered!")
+                return True
+        except Exception:
+            pass
+        log_info(f"   Recovery check {check+1}/3 failed, waiting 10s...")
+        time.sleep(10)
+
+    log_info("❌ Server did not recover.")
+    return False
+
+
 # ── Chat Helper ────────────────────────────────────────────────────────────
 
-def send_chat(query: str, session_id: Optional[str] = None, retries: int = 2) -> Tuple[Optional[dict], Optional[str]]:
+def send_chat(query: str, session_id: Optional[str] = None) -> Tuple[Optional[dict], Optional[str]]:
     """
-    Send a chat query and return (response_dict, error_string).
-    Retries on timeout/5xx errors.
+    Send a chat query with exponential backoff for 429/500 errors.
+    Backoff: 5s → 10s → 20s → 40s
+    On ConnectionError: attempts server health recovery (30s pause).
     """
     payload = {"query": query}
     if session_id:
         payload["session_id"] = session_id
 
-    for attempt in range(retries + 1):
+    for attempt in range(BACKOFF_MAX_RETRIES):
+        backoff = BACKOFF_BASE * (2 ** attempt)  # 5, 10, 20, 40
+
         try:
             resp = requests.post(
                 f"{BASE_URL}/chat",
                 json=payload,
                 headers=auth_headers(),
-                timeout=120,  # LLM can be slow
+                timeout=180,  # extended for tool-calling chains
             )
+
             if resp.status_code == 200:
                 return resp.json(), None
-            elif resp.status_code >= 500 and attempt < retries:
-                log_info(f"Server error (attempt {attempt+1}), retrying...")
-                time.sleep(2)
-                continue
-            else:
-                return None, f"HTTP {resp.status_code}: {resp.text[:200]}"
-        except requests.Timeout:
-            if attempt < retries:
-                log_info(f"Timeout (attempt {attempt+1}), retrying...")
-                time.sleep(2)
-                continue
-            return None, "Request timed out after 120s"
-        except Exception as e:
-            return None, str(e)
 
-    return None, "Max retries exceeded"
+            # Rate limited (429) or server error (5xx)
+            if resp.status_code in (429, 500, 502, 503) and attempt < BACKOFF_MAX_RETRIES - 1:
+                reason = "Rate limited (429)" if resp.status_code == 429 else f"Server error ({resp.status_code})"
+                log_info(f"{reason} — backoff {backoff}s (attempt {attempt+1}/{BACKOFF_MAX_RETRIES})")
+                time.sleep(backoff)
+                continue
+
+            return None, f"HTTP {resp.status_code}: {resp.text[:300]}"
+
+        except requests.Timeout:
+            if attempt < BACKOFF_MAX_RETRIES - 1:
+                log_info(f"Timeout — backoff {backoff}s (attempt {attempt+1}/{BACKOFF_MAX_RETRIES})")
+                time.sleep(backoff)
+                continue
+            return None, f"Request timed out after 180s ({BACKOFF_MAX_RETRIES} attempts)"
+
+        except (requests.ConnectionError, ConnectionResetError) as e:
+            # Server may have crashed — attempt recovery
+            if wait_for_server_recovery():
+                log_info("Retrying after server recovery...")
+                continue
+            return None, f"Server down: {e}"
+
+        except Exception as e:
+            return None, f"Unexpected error: {e}"
+
+    return None, f"Max retries exceeded ({BACKOFF_MAX_RETRIES} attempts with exponential backoff)"
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -228,6 +284,7 @@ def test_phase2_rag_and_citations():
     # ── Test 2.1: Pregunta específica sobre tarifas ──
     query = "¿Cuál es el valor de la chequera de 30 hojas para persona natural?"
     log_info(f"Query: {query}")
+    rate_limit_delay("RAG query")
 
     data, error = send_chat(query, session_id=state.session_id)
 
@@ -278,6 +335,7 @@ def test_phase2_rag_and_citations():
 
     # ── Test 2.2: Pregunta sin respuesta (anti-alucinación) ──
     query2 = "¿Cuál es el color del edificio principal de la sede en Marte?"
+    rate_limit_delay("anti-hallucination test")
     log_info(f"Query (hallucination test): {query2}")
 
     data2, error2 = send_chat(query2, session_id=state.session_id)
@@ -318,6 +376,7 @@ def test_phase3_tools_and_memory():
 
     # ── 3.1: generate_summary ──
     log_info("Test 3.1: generate_summary")
+    rate_limit_delay("generate_summary")
     query_summary = "Hazme un resumen ejecutivo de las tarifas del documento de mayo."
     data, error = send_chat(query_summary, session_id=state.session_id)
 
@@ -336,6 +395,7 @@ def test_phase3_tools_and_memory():
 
     # ── 3.2: generate_procedure ──
     log_info("Test 3.2: generate_procedure")
+    rate_limit_delay("generate_procedure")
     query_proc = "Basándote en lo anterior, genera un procedimiento paso a paso para la solicitud de una chequera."
     data, error = send_chat(query_proc, session_id=state.session_id)
 
@@ -354,6 +414,7 @@ def test_phase3_tools_and_memory():
 
     # ── 3.3: create_task ──
     log_info("Test 3.3: create_task")
+    rate_limit_delay("create_task")
     query_task = "Crea una tarea con el título 'Revisar procedimiento de chequeras', descripción 'Validar el procedimiento generado', asignada a QA Team, prioridad alta."
     data, error = send_chat(query_task, session_id=state.session_id)
 
@@ -372,6 +433,7 @@ def test_phase3_tools_and_memory():
 
     # ── 3.4: list_tasks ──
     log_info("Test 3.4: list_tasks")
+    rate_limit_delay("list_tasks")
     query_list = "¿Cuáles son mis tareas pendientes?"
     data, error = send_chat(query_list, session_id=state.session_id)
 
@@ -390,6 +452,7 @@ def test_phase3_tools_and_memory():
 
     # ── 3.5: Memory validation ──
     log_info("Test 3.5: Memory (session continuity)")
+    rate_limit_delay("memory test")
     query_memory = "¿De qué hemos hablado en esta conversación?"
     data, error = send_chat(query_memory, session_id=state.session_id)
 
